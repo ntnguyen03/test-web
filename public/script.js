@@ -66,6 +66,7 @@ function showLoginForm() {
 socket.on('authSuccess', (data) => {
     playerName = data.username;
     balance = data.balance;
+    isLoggedIn = true; // Đặt isLoggedIn thành true khi đăng nhập thành công
     document.getElementById('auth-container').style.display = 'none';
     document.getElementById('game-container').style.display = 'block';
     socket.emit('initGame');
@@ -119,7 +120,6 @@ socket.on('notification', (message) => {
 });
 
 // Hiệu ứng lăn xúc xắc
-// Hiệu ứng lăn xúc xắc
 socket.on('rollDice', () => {
     const dice1 = document.getElementById('dice1');
     const dice2 = document.getElementById('dice2');
@@ -156,7 +156,7 @@ socket.on('rollDice', () => {
         betAmount = 0;
         document.getElementById('bet-amount').value = '';
         document.getElementById('bet-input').style.display = 'none';
-        rollSound.play(); // Âm thanh chỉ phát khi đã đăng nhập
+        rollSound.play(); // Âm thanh roll chỉ phát khi đã đăng nhập
         positionDiceRandomly();
     }
 });
@@ -164,19 +164,21 @@ socket.on('rollDice', () => {
 // Kết quả xúc xắc
 socket.on('diceResult', (data) => {
     const { dice1, dice2, dice3, total, result, sessionNumber } = data;
-    document.getElementById('dice1').src = `${dice1}.jpg`;
-    document.getElementById('dice2').src = `${dice2}.jpg`;
-    document.getElementById('dice3').src = `${dice3}.jpg`;
-    document.getElementById('dice1').classList.remove('rolling');
-    document.getElementById('dice2').classList.remove('rolling');
-    document.getElementById('dice3').classList.remove('rolling');
-    document.getElementById('dice-result').textContent = total;
-    document.getElementById('dice-result').style.display = 'block';
+    if (isLoggedIn) { // Chỉ cập nhật giao diện nếu đã đăng nhập
+        document.getElementById('dice1').src = `${dice1}.jpg`;
+        document.getElementById('dice2').src = `${dice2}.jpg`;
+        document.getElementById('dice3').src = `${dice3}.jpg`;
+        document.getElementById('dice1').classList.remove('rolling');
+        document.getElementById('dice2').classList.remove('rolling');
+        document.getElementById('dice3').classList.remove('rolling');
+        document.getElementById('dice-result').textContent = total;
+        document.getElementById('dice-result').style.display = 'block';
+    }
 
     diceResultData = { total, result, sessionNumber };
     hasViewedResult = true;
 
-    if (previousBet) {
+    if (previousBet && isLoggedIn) { // Chỉ xử lý âm thanh nếu đã đăng nhập
         if (previousBet.choice === result) {
             balance += previousBet.amount * 2;
             socket.emit('updateBalance', balance);
@@ -188,11 +190,13 @@ socket.on('diceResult', (data) => {
         }
     }
 
-    history.push({ session: sessionNumber, total: total, result: result.toUpperCase() });
-    const historyList = document.getElementById('history-list');
-    const li = document.createElement('li');
-    li.textContent = `Phiên #${sessionNumber}: Tổng ${total} - ${result.toUpperCase()}`;
-    historyList.insertBefore(li, historyList.firstChild);
+    if (isLoggedIn) { // Chỉ cập nhật lịch sử nếu đã đăng nhập
+        history.push({ session: sessionNumber, total: total, result: result.toUpperCase() });
+        const historyList = document.getElementById('history-list');
+        const li = document.createElement('li');
+        li.textContent = `Phiên #${sessionNumber}: Tổng ${total} - ${result.toUpperCase()}`;
+        historyList.insertBefore(li, historyList.firstChild);
+    }
 });
 
 // Phát âm thanh khi thắng/thua
