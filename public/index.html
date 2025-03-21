@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Tài Xỉu</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="name-prompt" id="name-prompt">
+        <h2>Nhập tên của bạn</h2>
+        <input type="text" id="player-name" placeholder="Tên của bạn" maxlength="20">
+        <button onclick="submitName()">Xác nhận</button>
+    </div>
+
+    <div class="container" id="game-container" style="display: none;">
+        <div class="layout">
+            <!-- Phần chat ở bên trái -->
+            <div class="chat">
+                <h3>Chat</h3>
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="100">
+                    <button onclick="sendChatMessage()">Gửi</button>
+                </div>
+            </div>
+
+            <!-- Phần nội dung chính ở bên phải -->
+            <div class="main-content">
+                <div class="balance">
+                    <span>Số dư: <span id="balance">0</span></span>
+                </div>
+                <div class="header">
+                    <div class="game-title">TÀI XỈU</div>
+                    <div class="game-id" id="game-id">#0</div>
+                    <div class="player-count">
+                        <span id="tai-players">0 <img src="https://img.icons8.com/ios-filled/20/ffffff/user.png" alt="user"></span>
+                        <span id="xiu-players">0 <img src="https://img.icons8.com/ios-filled/20/ffffff/user.png" alt="user"></span>
+                    </div>
+                </div>
+                <div class="main-board">
+                    <div class="tai">
+                        <h2>TÀI</h2>
+                        <p id="tai-bet">0</p>
+                        <button class="bet-button" onclick="showBetInput('tai')">ĐẶT CƯỢC</button>
+                    </div>
+                    <div class="result-circle">
+                        <div class="dice-container">
+                            <img id="dice1" src="1.jpg" alt="Dice 1">
+                            <img id="dice2" src="1.jpg" alt="Dice 2">
+                            <img id="dice3" src="1.jpg" alt="Dice 3">
+                        </div>
+                    </div>
+                    <div class="dice-result" id="dice-result" style="display: none;"></div>
+                    <div class="xiu">
+                        <h2>XỈU</h2>
+                        <p id="xiu-bet">0</p>
+                        <button class="bet-button" onclick="showBetInput('xiu')">ĐẶT CƯỢC</button>
+                    </div>
+                </div>
+                <div class="timer" id="timer">0</div>
+                <div class="bet-input" id="bet-input" style="display: none;">
+                    <input type="number" id="bet-amount" placeholder="Nhập số tiền cược" min="0">
+                    <div class="bet-options">
+                        <button onclick="setBetAmount(1000)">1K</button>
+                        <button onclick="setBetAmount(10000)">10K</button>
+                        <button onclick="setBetAmount(50000)">50K</button>
+                        <button onclick="setBetAmount(100000)">100K</button>
+                        <button onclick="setBetAmount(500000)">500K</button>
+                        <button onclick="setBetAmount(5000000)">5M</button>
+                        <button onclick="setBetAmount(10000000)">10M</button>
+                        <button onclick="setBetAmount(50000000)">50M</button>
+                        <button onclick="setBetAmount(balance)" class="all-in">ALL-IN</button>
+                    </div>
+                    <button class="confirm-bet" onclick="confirmBet()">XÁC NHẬN</button>
+                    <button class="cancel-bet" onclick="cancelBet()">HỦY</button>
+                </div>
+                <div class="bet-result" id="bet-result"></div>
+                <div class="history">
+                    <h3>Lịch Sử Phiên Chơi</h3>
+                    <ul id="history-list"></ul>
+                </div>
+                <div class="player-bets">
+                    <h3>Danh Sách Cược</h3>
+                    <div class="player-bets-container">
+                        <div class="tai-bets">
+                            <h4>Tài</h4>
+                            <ul id="tai-bets-list"></ul>
+                        </div>
+                        <div class="xiu-bets">
+                            <h4>Xỉu</h4>
+                            <ul id="xiu-bets-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="notifications" id="notifications"></div>
+    </div>
+
+    <audio id="roll-sound" src="roll.mp3"></audio>
+    <audio id="win-sound" src="win.mp3"></audio>
+    <audio id="lose-sound" src="lose.mp3"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
