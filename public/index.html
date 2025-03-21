@@ -8,10 +8,23 @@
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <div class="name-prompt" id="name-prompt">
-        <h2>Nhập tên của bạn</h2>
-        <input type="text" id="player-name" placeholder="Tên của bạn" maxlength="20">
-        <button onclick="submitName()">Xác nhận</button>
+    <div class="auth-container" id="auth-container">
+        <div class="auth-form" id="login-form">
+            <h2>Đăng Nhập</h2>
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Mật khẩu" required>
+            <button onclick="login()">Đăng Nhập</button>
+            <p>Chưa có tài khoản? <a href="#" onclick="showRegisterForm()">Đăng ký ngay</a></p>
+        </div>
+        <div class="auth-form" id="register-form" style="display: none;">
+            <h2>Đăng Ký</h2>
+            <input type="email" id="register-email" placeholder="Email" required>
+            <input type="text" id="register-username" placeholder="Tên hiển thị" maxlength="20" required>
+            <input type="password" id="register-password" placeholder="Mật khẩu" required>
+            <button onclick="register()">Đăng Ký</button>
+            <p>Đã có tài khoản? <a href="#" onclick="showLoginForm()">Đăng nhập</a></p>
+        </div>
+        <div class="auth-error" id="auth-error"></div>
     </div>
 
     <div class="container" id="game-container" style="display: none;">

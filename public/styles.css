@@ -10,7 +10,7 @@ body {
     font-family: 'Arial', sans-serif;
 }
 
-.name-prompt {
+.auth-container {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -23,32 +23,58 @@ body {
     color: #FFD700;
 }
 
-.name-prompt h2 {
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 250px; /* Đặt chiều rộng cố định cho form */
+}
+
+.auth-form h2 {
     margin: 0 0 10px 0;
 }
 
-.name-prompt input {
+.auth-form input {
     padding: 5px;
     margin-bottom: 10px;
     border-radius: 5px;
     border: 1px solid #FFD700;
     background: #3C2F2F;
     color: white;
-    width: 200px;
+    width: 100%; /* Đảm bảo input chiếm toàn bộ chiều rộng của form */
+    box-sizing: border-box; /* Bao gồm padding và border trong chiều rộng */
 }
 
-.name-prompt button {
+.auth-form button {
     background: #FFD700;
     color: #3C2F2F;
     border: none;
-    padding: 10px 20px;
+    padding: 10px;
     border-radius: 5px;
     font-weight: bold;
     cursor: pointer;
+    width: 100%; /* Đảm bảo nút chiếm toàn bộ chiều rộng của form */
+    box-sizing: border-box;
 }
 
-.name-prompt button:hover {
+.auth-form button:hover {
     background: #DAA520;
+}
+
+.auth-form p {
+    margin: 10px 0 0 0;
+}
+
+.auth-form a {
+    color: #FFD700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.auth-error {
+    color: #FF4500;
+    margin-top: 10px;
+    font-size: 14px;
 }
 
 .container {

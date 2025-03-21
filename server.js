@@ -2,12 +2,13 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Kết nối MongoDB (thay connection string bằng của bạn)
+// Kết nối MongoDB
 mongoose.connect('mongodb+srv://admin:admin12345@taixiu.3vtek.mongodb.net/?retryWrites=true&w=majority&appName=taixiu', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -19,9 +20,11 @@ mongoose.connect('mongodb+srv://admin:admin12345@taixiu.3vtek.mongodb.net/?retry
 
 // Định nghĩa schema cho người chơi
 const playerSchema = new mongoose.Schema({
-    playerId: String,
-    name: String,
-    balance: Number,
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    username: { type: String, required: true, unique: true }, // Tên hiển thị trong game
+    balance: { type: Number, default: 10000000 },
+    socketId: { type: String } // Lưu socketId để quản lý phiên
 });
 
 const Player = mongoose.model('Player', playerSchema);
@@ -80,25 +83,70 @@ function rollDice() {
     }, 10000);
 }
 
-io.on('connection', async (socket) => {
+io.on('connection', (socket) => {
     console.log('Người chơi mới kết nối:', socket.id);
 
-    socket.emit('requestName');
+    socket.emit('requestAuth');
 
-    socket.on('setName', async (name) => {
-        let player = await Player.findOne({ playerId: socket.id });
+    socket.on('register', async (data) => {
+        const { email, password, username } = data;
+        try {
+            const existingPlayer = await Player.findOne({ $or: [{ email }, { username }] });
+            if (existingPlayer) {
+                socket.emit('authError', 'Email hoặc username đã tồn tại!');
+                return;
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const player = new Player({
+                email,
+                password: hashedPassword,
+                username,
+                socketId: socket.id
+            });
+            await player.save();
+
+            socket.emit('authSuccess', { username: player.username, balance: player.balance });
+            io.emit('notification', `${player.username} đã tham gia trò chơi!`);
+        } catch (err) {
+            socket.emit('authError', 'Đăng ký thất bại, vui lòng thử lại!');
+        }
+    });
+
+    socket.on('login', async (data) => {
+        const { email, password } = data;
+        try {
+            const player = await Player.findOne({ email });
+            if (!player) {
+                socket.emit('authError', 'Email không tồn tại!');
+                return;
+            }
+
+            const isMatch = await bcrypt.compare(password, player.password);
+            if (!isMatch) {
+                socket.emit('authError', 'Mật khẩu không đúng!');
+                return;
+            }
+
+            player.socketId = socket.id;
+            await player.save();
+
+            socket.emit('authSuccess', { username: player.username, balance: player.balance });
+            io.emit('notification', `${player.username} đã tham gia trò chơi!`);
+        } catch (err) {
+            socket.emit('authError', 'Đăng nhập thất bại, vui lòng thử lại!');
+        }
+    });
+
+    socket.on('initGame', async () => {
+        const player = await Player.findOne({ socketId: socket.id });
         if (!player) {
-            const initialBalance = 10000000;
-            player = new Player({ playerId: socket.id, name: name, balance: initialBalance });
-            await player.save();
-        } else {
-            player.name = name;
-            await player.save();
+            socket.emit('authError', 'Vui lòng đăng nhập để chơi!');
+            return;
         }
 
         socket.emit('init', {
-            playerId: socket.id,
-            name: player.name,
+            username: player.username,
             balance: player.balance,
             taiBets,
             xiuBets,
@@ -109,12 +157,12 @@ io.on('connection', async (socket) => {
             sessionNumber,
             timer
         });
-
-        io.emit('notification', `${player.name} đã tham gia trò chơi!`);
     });
 
     socket.on('placeBet', async (data) => {
-        const player = await Player.findOne({ playerId: socket.id });
+        const player = await Player.findOne({ socketId: socket.id });
+        if (!player) return;
+
         if (data.amount > player.balance) {
             socket.emit('error', 'Số dư không đủ để đặt cược!');
             return;
@@ -124,22 +172,22 @@ io.on('connection', async (socket) => {
         await player.save();
 
         if (data.choice === 'tai') {
-            taiBets.push({ player: socket.id, name: player.name, amount: data.amount });
+            taiBets.push({ player: socket.id, name: player.username, amount: data.amount });
             taiTotalBet += data.amount;
             taiPlayersCount++;
         } else {
-            xiuBets.push({ player: socket.id, name: player.name, amount: data.amount });
+            xiuBets.push({ player: socket.id, name: player.username, amount: data.amount });
             xiuTotalBet += data.amount;
             xiuPlayersCount++;
         }
 
         io.emit('updateBets', { taiBets, xiuBets, taiTotalBet, xiuTotalBet, taiPlayersCount, xiuPlayersCount, sessionNumber });
         socket.emit('updateBalance', player.balance);
-        io.emit('notification', `${player.name} đã đặt ${data.amount.toLocaleString()} vào ${data.choice.toUpperCase()}`);
+        io.emit('notification', `${player.username} đã đặt ${data.amount.toLocaleString()} vào ${data.choice.toUpperCase()}`);
     });
 
     socket.on('updateBalance', async (newBalance) => {
-        const player = await Player.findOne({ playerId: socket.id });
+        const player = await Player.findOne({ socketId: socket.id });
         if (player) {
             player.balance = newBalance;
             await player.save();
@@ -148,14 +196,18 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('chatMessage', async (message) => {
-        const player = await Player.findOne({ playerId: socket.id });
-        io.emit('chatMessage', { name: player.name, message });
+        const player = await Player.findOne({ socketId: socket.id });
+        if (player) {
+            io.emit('chatMessage', { name: player.username, message });
+        }
     });
 
     socket.on('disconnect', async () => {
-        const player = await Player.findOne({ playerId: socket.id });
+        const player = await Player.findOne({ socketId: socket.id });
         if (player) {
-            io.emit('notification', `${player.name} đã rời trò chơi!`);
+            player.socketId = null;
+            await player.save();
+            io.emit('notification', `${player.username} đã rời trò chơi!`);
         }
         console.log('Người chơi ngắt kết nối:', socket.id);
     });
